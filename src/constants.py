@@ -23,8 +23,8 @@ P_MMWAVE_DIR = "/mmWave/"
 
 P_PROFILING_PATH = "./profiling/"
 
-P_CLI_PORT = "/dev/ttyACM0"
-P_DATA_PORT = "/dev/ttyACM1"
+P_CLI_PORT = "COM12"
+P_DATA_PORT = "COM11"
 
 ###### Scene Setup ######
 # Sensitive Coordinates
