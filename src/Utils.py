@@ -6,11 +6,9 @@ import csv
 import numpy as np
 import os
 
-
-class RingBuffer:
+class Buffer:
     """
-    Circular buffer with a fixed size that automatically discards the oldest elements
-    when new elements are added.
+    Buffer with a fixed size that automatically discards the oldest elements when new elements are added.
 
     Attributes
     ----------
@@ -48,7 +46,6 @@ class RingBuffer:
 
     def get_mean(self):
         return np.mean(self.buffer)
-
 
 class OfflineManager:
     """
@@ -176,7 +173,6 @@ class OfflineManager:
         """
         return self.last_frame is None
 
-
 def calc_projection_points(x_origin, y_origin, z_origin):
     """
     Calculate the screen projection of a point based on its distance from a reference point.
@@ -218,8 +214,7 @@ def calc_projection_points(x_origin, y_origin, z_origin):
 
     return x_proj, z_proj
 
-
-def altered_EuclideanDist(p1, p2):
+def calculate_euclidean_dist(p1, p2):
     """
     Calculate an altered Euclidean distance between two points in 3D space.
 
@@ -237,8 +232,8 @@ def altered_EuclideanDist(p1, p2):
     float
         The adjusted Euclidean distance between the two points.
     """
-    # NOTE: The z-axis has less weight in the distance metric since the sillouette of a person is tall and thin.
-    # Also, the further away from the sensor the more sparse the points, so we need a weighing factor
+    # The z-axis has less weight in the distance metric since the silhouette of a person is tall and thin.
+    # Also, the further away from the sensor the more sparse the points are, so we need a weighing factor.
     weight = 1 - ((p1[1] + p2[1]) / 2) * const.DB_RANGE_WEIGHT
     return weight * (
         (p1[0] - p2[0]) ** 2
@@ -246,8 +241,7 @@ def altered_EuclideanDist(p1, p2):
         + const.DB_Z_WEIGHT * ((p1[2] - p2[2]) ** 2)
     )
 
-
-def apply_DBscan(pointcloud, eps=const.DB_EPS, min_samples=const.DB_MIN_SAMPLES_MIN):
+def cluster_pointcloud_dbscan(pointcloud, eps=const.DB_EPS, min_samples=const.DB_MIN_SAMPLES_MIN):
     """
     Apply DBSCAN clustering to a 3D point cloud using an altered Euclidean distance metric.
 
@@ -272,12 +266,12 @@ def apply_DBscan(pointcloud, eps=const.DB_EPS, min_samples=const.DB_MIN_SAMPLES_
     dbscan = DBSCAN(
         eps=eps,
         min_samples=min_samples,
-        metric=altered_EuclideanDist,
+        metric=calculate_euclidean_dist,
     )
 
     labels = dbscan.fit_predict(pointcloud)
 
-    # label of -1 means noice so we exclude it
+    # -1 is the label for noise points
     filtered_labels = set(labels) - {-1}
 
     # Assign points to clusters
@@ -286,10 +280,8 @@ def apply_DBscan(pointcloud, eps=const.DB_EPS, min_samples=const.DB_MIN_SAMPLES_
         if label != -1:
             clustered_points[label].append(pointcloud[i])
 
-    # Return a list of clustered pointclouds
     clusters = list(clustered_points.values())
     return clusters
-
 
 def point_transform_to_standard_axis(input):
     """
@@ -337,7 +329,6 @@ def point_transform_to_standard_axis(input):
             transformed_velocities[2],
         ]
     )
-
 
 def normalize_data(detObj):
     """
@@ -433,7 +424,6 @@ def normalize_data(detObj):
 
     return ef_data
 
-
 def relative_coordinates(absolute_coords: np.array, reference: np.array):
     """
     Calculate relative coordinates on the x and y axes with respect to a reference point.
@@ -456,7 +446,6 @@ def relative_coordinates(absolute_coords: np.array, reference: np.array):
             for point in absolute_coords
         ]
     )
-
 
 def format_single_frame(
     track_cloud: np.array, mean=const.INTENSITY_MU, std_dev=const.INTENSITY_STD

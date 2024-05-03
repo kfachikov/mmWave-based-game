@@ -17,7 +17,6 @@ from Tracking import (
     BatchedData,
 )
 
-
 def main():
     IWR1443 = ReadIWR14xx(
         const.P_CONFIG_PATH, CLIport=const.P_CLI_PORT, Dataport=const.P_DATA_PORT
@@ -29,7 +28,6 @@ def main():
     trackbuffer = TrackBuffer()
     batch = BatchedData()
     visual = VisualManager()
-    model = load_model(const.P_MODEL_PATH)
 
     # Disable screen sleep/screensaver
     with keep.presenting():
@@ -51,9 +49,6 @@ def main():
                     if effective_data.shape[0] != 0:
                         # Tracking Module
                         trackbuffer.track(effective_data, batch)
-
-                        # Posture Estimation module
-                        trackbuffer.estimate_posture(model)
 
                     visual.update(trackbuffer, detObj)
 

@@ -13,7 +13,7 @@ from Tracking import (
 
 ########### Set the experiment path here ############
 
-EXPERIMENT_PATH = "./dataset/log/mmWave/merged"
+EXPERIMENT_PATH = "./dataset/log/mmWave/tryout"
 
 #####################################################
 
@@ -31,7 +31,6 @@ def offline_main():
     visual = VisualManager()
 
     trackbuffer = TrackBuffer()
-    model = load_model(const.P_MODEL_PATH)
     batch = BatchedData()
     first_iter = True
 
@@ -56,9 +55,6 @@ def offline_main():
                     if effective_data.shape[0] != 0:
                         # Tracking module
                         trackbuffer.track(effective_data, batch)
-
-                        # Posture Estimation module
-                        trackbuffer.estimate_posture(model)
 
                     visual.update(trackbuffer, detObj)
 

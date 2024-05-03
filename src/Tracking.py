@@ -4,10 +4,8 @@ import math
 import time
 from filterpy.kalman import KalmanFilter
 from Utils import (
-    apply_DBscan,
-    RingBuffer,
-    relative_coordinates,
-    format_single_frame,
+    cluster_pointcloud_dbscan,
+    Buffer,
 )
 from typing import List
 
@@ -18,7 +16,7 @@ STATIC = True
 DYNAMIC = False
 
 
-class BatchedData(RingBuffer):
+class BatchedData(Buffer):
     """
     A class to manage and combine frames into a batch.
 
@@ -120,16 +118,14 @@ class PointCluster:
         """
         Initialize PointCluster with a given pointcloud.
         """
-
-        # NOTE: the input is now a list of 8 entries
         self.pointcloud = pointcloud
         self.point_num = pointcloud.shape[0]
         self.centroid = np.mean(pointcloud[:, :6], axis=0)
         self.min_vals = np.min(pointcloud[:, :6], axis=0)
         self.max_vals = np.max(pointcloud[:, :6], axis=0)
 
+        # Check whether the cluster centroid is moving quickly enough or not.
         if math.sqrt(np.sum((self.centroid[3:6] ** 2))) < const.TR_VEL_THRES:
-            # if pointcloud[6] < const.TR_VEL_THRES:
             self.status = STATIC
         else:
             self.status = DYNAMIC
@@ -218,11 +214,8 @@ class ClusterTrack:
         self.status = ACTIVE
         self.lifetime = 0
         self.keypoints = const.MODEL_DEFAULT_POSTURE
-        # self.height_buffer = RingBuffer(
-        #     const.FB_HEIGHT_FRAME_PERIOD, init_val=self.cluster.max_vals[2] - 0.01
-        # )
-        # self.width_buffer = RingBuffer(const.FB_WIDTH_FRAME_PERIOD)
-        # NOTE: For visualizing purposes only
+
+        # For visualizing purposes only
         self.predict_x = self.state.x
         self.color = np.random.rand(
             3,
@@ -236,6 +229,7 @@ class ClusterTrack:
             if self.cluster.point_num > self.N_est:
                 self.N_est = self.cluster.point_num
             else:
+                # Weighted average between the current number of points and the estimated number of points
                 self.N_est = (
                     1 - const.KF_A_N
                 ) * self.N_est + const.KF_A_N * self.cluster.point_num
@@ -247,28 +241,31 @@ class ClusterTrack:
         Estimate the spread of measurements in each dimension.
         """
         for m in range(len(self.cluster.min_vals)):
+            # Difference between max and min values in the cluster (in one dimension)
             spread = self.cluster.max_vals[m] - self.cluster.min_vals[m]
 
-            # Unbiased spread estimation
+            # Unbiased spread estimation - the more points we have, the tighter the spread we create is
             if self.cluster.point_num != 1:
                 spread = (
                     spread * (self.cluster.point_num + 1) / (self.cluster.point_num - 1)
                 )
 
-            # Ensure the computed spread estimation is between 1x and 2x of configured limits
+            # Map the spread to a range between 1 and 2 times between the configured spread limits
             spread = min(2 * const.KF_SPREAD_LIM[m], spread)
             spread = max(const.KF_SPREAD_LIM[m], spread)
 
             if spread > self.spread_est[m]:
+                # This would most likely be the case when we have few samples
                 self.spread_est[m] = spread
             else:
+                # Weighed average between calculated spread and the previous spread estimation
                 self.spread_est[m] = (1.0 - const.KF_A_SPR) * self.spread_est[
                     m
                 ] + const.KF_A_SPR * spread
 
     def _get_D(self):
         """
-        Calculate and get the dispersion matrix for the track.
+        Calculate and get the dispersion matrix for the current cluster.
 
         Returns
         -------
@@ -339,24 +336,6 @@ class ClusterTrack:
         self._estimate_measurement_spread()
         self._estimate_group_disp_matrix()
 
-        # Save the current height and width of the pointcloud projection to the screen in the ringbuffers.
-        # TODO: This approach needs to change
-        # self.height_buffer.append(
-        #     calc_projection_points(
-        #         value=self.cluster.max_vals[2] - 0.01,
-        #         y=self.cluster.min_vals[1],
-        #         vertical_axis=True,
-        #     )
-        # )
-        # self.width_buffer.append(
-        #     calc_projection_points(
-        #         value=self.cluster.max_vals[0], y=self.cluster.min_vals[1]
-        #     )
-        #     - calc_projection_points(
-        #         value=self.cluster.min_vals[0], y=self.cluster.min_vals[1]
-        #     )
-        # )
-
     def get_Rm(self):
         """
         Get the measurement covariance matrix
@@ -404,48 +383,6 @@ class ClusterTrack:
             self.lifetime = 0
         else:
             self.lifetime += dt
-
-    def seek_inner_clusters(self):
-        """
-        Seek inner clusters within the current cluster.
-
-        This method uses DBSCAN to identify inner clusters within the current cluster's pointcloud.
-        It helps in separating inner clusters and filtering noise when a single cluster is detected.
-
-        Returns
-        -------
-        list
-            List of new inner track clusters (PointCluster instances).
-
-        """
-
-        new_track_clusters = []
-        spread = self.cluster.max_vals[:1] - self.cluster.min_vals[:1]
-        if (
-            self.cluster.point_num > const.DB_POINTS_THRES
-            and spread.any() > const.DB_SPREAD_THRES
-        ):
-            # Allow frame fusion for better resolution
-            # NOTE: State machine is better here
-            if self.cluster.status == STATIC:
-                self.batch.change_buffer_size(const.FB_FRAMES_BATCH_STATIC)
-            else:
-                self.batch.change_buffer_size(const.FB_FRAMES_BATCH)
-
-            self.batch.add_frame(self.cluster.pointcloud)
-            pointcloud = self.batch.effective_data
-
-            # Apply clustering to identify inner clusters
-            track_clusters = apply_DBscan(
-                pointcloud=pointcloud,
-                eps=const.DB_INNER_EPS,
-            )
-
-            if len(track_clusters) > 1:
-                new_track_clusters = [track_clusters[1]]
-
-        return new_track_clusters
-
 
 class TrackBuffer:
     """
@@ -646,8 +583,10 @@ class TrackBuffer:
 
         for j, track in enumerate(self.effective_tracks):
             if len(clouds[j]) == 0:
+                # Nothing is recorder about this track
                 track.update_lifetime(dt=self.dt)
             else:
+                # Something is recorder about this track
                 track.update_lifetime(dt=self.dt, reset=True)
                 track.associate_pointcloud(np.array(clouds[j]))
 
@@ -693,43 +632,10 @@ class TrackBuffer:
             len(batch.effective_data) > 0
             and len(self.effective_tracks) < const.TR_MAX_TRACKS
         ):
-            new_clusters = apply_DBscan(batch.effective_data)
+            new_clusters = cluster_pointcloud_dbscan(batch.effective_data)
 
             if len(new_clusters) > 0:
                 batch.clear()
 
             # Create new track for every new cluster
             self._add_tracks(new_clusters)
-
-    def estimate_posture(self, model):
-        """
-        Format the pointcloud, estimate and save the posture of the target of each track using a CNN model.
-
-        Parameters
-        ----------
-        model : Model
-            The CNN model used for posture estimation.
-
-        Returns
-        -------
-        None
-        """
-        frame_matrices = []
-        indexes = []
-        for index, track in enumerate(self.effective_tracks):
-            if len(track.batch.effective_data) > const.MODEL_MIN_INPUT:
-                rel_track_points = relative_coordinates(
-                    track.batch.effective_data,
-                    track.cluster.centroid[:2],
-                )
-                # The inputs are in the form of [x, y, z, x', y', z', r', s]
-                frame_matrices.append(
-                    format_single_frame(rel_track_points[:, [0, 1, 2, -2, -1]])
-                )
-                indexes.append(index)
-
-        frame_matrices_array = np.array(frame_matrices)
-        if len(frame_matrices_array) > 0:
-            frame_keypoints = model.predict(frame_matrices_array)
-            for i, index in enumerate(indexes):
-                self.effective_tracks[index].keypoints = frame_keypoints[i]

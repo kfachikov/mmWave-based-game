@@ -102,7 +102,7 @@ KF_GROUP_DISP_EST_INIT = 0.1
 KF_ENABLE_EST = False
 KF_A_N = 0.9
 KF_EST_POINTNUM = 30
-KF_SPREAD_LIM = [0.2, 0.2, 2, 1.2, 1.2, 0.2]
+KF_SPREAD_LIM = [0.2, 0.2, 2, 1.2, 1.2, 0.2] # Spread limitation in a single direction; [x, y, z, vx, vy, vz]
 KF_A_SPR = 0.9
 
 ############### Model ####################
@@ -110,7 +110,6 @@ KF_A_SPR = 0.9
 INTENSITY_MU = 193
 INTENSITY_STD = 252
 
-MODEL_MIN_INPUT = 10
 MODEL_DEFAULT_POSTURE = np.array(
     [
         0.0000,

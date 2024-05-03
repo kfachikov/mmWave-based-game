@@ -12,7 +12,6 @@ from Utils import calc_projection_points
 
 
 def calc_fade_square(track: ClusterTrack):
-
     center = calc_projection_points(
         track.state.x[0] + track.keypoints[11],
         track.state.x[1] + track.keypoints[12],
@@ -28,15 +27,13 @@ def calc_fade_square(track: ClusterTrack):
     )
     return (center, rect_size)
 
-
 class VisualManager:
     def __init__(self):
         self.mode = const.SCREEN_CONNECTED
-        self.counter = 1
         if self.mode:
             self.visual = ScreenAdapter()
         else:
-            self.visual = Visualizer(raw_cloud=True, b_boxes=True, posture=True)
+            self.visual = Visualizer(raw_cloud=True, b_boxes=True)
 
     def update(self, trackbuffer, detObj):
         if const.SCREEN_CONNECTED:
@@ -45,11 +42,7 @@ class VisualManager:
             self.visual.clear()
             self.visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
             self.visual.update_bb(trackbuffer)
-            self.visual.update_posture(trackbuffer.effective_tracks)
-            plt.savefig(f"./gif/{self.counter}.png")
-            self.counter += 1
             self.visual.draw()
-
 
 class Visualizer:
     def setup_subplot(self, subplot: Axes3D):
@@ -64,13 +57,12 @@ class Visualizer:
         subplot.invert_xaxis()
         return subplot.scatter([], [], [])
 
-    def __init__(self, raw_cloud=False, b_boxes=False, posture=False):
+    def __init__(self, raw_cloud=False, b_boxes=False):
         self.dynamic_art = []
         fig = plt.figure()
-        plots_num = sum([raw_cloud, b_boxes, posture])
+        plots_num = sum([raw_cloud, b_boxes])
         plots_index = 1
 
-        # Create subplot of raw pointcloud
         if raw_cloud:
             self.ax_raw = fig.add_subplot(1, plots_num, plots_index, projection="3d")
             self.raw_scatter = self.setup_subplot(self.ax_raw)
@@ -91,57 +83,6 @@ class Visualizer:
             # self.ax_bb.legend(handles=legend_handles)
             plots_index += 1
 
-        if posture:
-            self.ax_post = fig.add_subplot(1, plots_num, plots_index, projection="3d")
-            self.setup_subplot(self.ax_post)
-            self.post_scatter = None
-
-            # Define connections and keypoints
-            self.connections = [
-                (0, 1),  # SpineBase to SpineMid
-                (1, 18),  # SpineMid to SpineShoulder
-                (2, 3),  # Neck to Head
-                (18, 4),  # SpineShoulder to ShoulderLeft
-                (18, 7),  # SpineShoulder to ShoulderRight
-                (4, 5),  # ShoulderLeft to ElbowLeft
-                (5, 6),  # ElbowLeft to WristLeft
-                (7, 8),  # ShoulderRight to ElbowRight
-                (8, 9),  # ElbowRight to WristRight
-                (0, 14),  # SpineBase to HipRight
-                (14, 15),  # HipRight to KneeRight
-                (15, 16),  # KneeRight to AnkleRight
-                (16, 17),  # AnkleRight to FootRight
-                (0, 10),  # SpineBase to HipLeft
-                (10, 11),  # HipLeft to KneeLeft
-                (11, 12),  # KneeLeft to AnkleLeft
-                (12, 13),  # AnkleLeft to FootLeft
-                (2, 18),  # Neck to SpineShoulder
-            ]
-
-            # Define keypoint colors
-            self.keypoint_colors = [
-                "blue",  # SpineBase,
-                "blue",  # SpineMid,
-                "blue",  # Neck,
-                "red",  # Head,
-                "blue",  # ShoulderLeft,
-                "green",  # ElbowLeft,
-                "green",  # WristLeft,
-                "blue",  # ShoulderRight,
-                "green",  # ElbowRight,
-                "green",  # WristRight,
-                "blue",  # HipLeft,
-                "green",  # KneeLeft,
-                "green",  # AnkleLeft,
-                "green",  # FootLeft,
-                "blue",  # HipRight,
-                "green",  # KneeRight,
-                "green",  # AnkleRight,
-                "green",  # FootRight,
-                "blue",  # SpineShoulder
-            ]
-            plots_index += 1
-        plt.tight_layout()
         plt.show(block=False)
 
     def clear(self):
@@ -206,22 +147,6 @@ class Visualizer:
         self.ax_bb.add_collection3d(cube)
         return cube
 
-    def draw_fading_window(self, track):
-        print("eneterd")
-        (center, rect_size) = calc_fade_square(track)
-        print(center, rect_size)
-        vertices = [
-            (center[0] - rect_size / 2, 0, center[1] - rect_size / 2),
-            (center[0] + rect_size / 2, 0, center[1] - rect_size / 2),
-            (center[0] + rect_size / 2, 0, center[1] + rect_size / 2),
-            (center[0] - rect_size / 2, 0, center[1] + rect_size / 2),
-        ]
-
-        # Create a Poly3DCollection
-        rectangle = Poly3DCollection([vertices], facecolors="black", alpha=0.8)
-        self.ax_bb.add_collection3d(rectangle)
-        return rectangle
-
     def update_bb(self, trackbuffer: TrackBuffer):
         if not hasattr(self, "ax_bb"):
             return
@@ -248,13 +173,6 @@ class Visualizer:
             self.dynamic_art.append(
                 self._draw_bounding_box(track.state.x, color=track.color, fill=0.2)
             )
-            # self.dynamic_art.append(
-            #     self._draw_bounding_box(track.predict_x, color="red")
-            # )
-            # self.dynamic_art.append(
-            #     self._draw_bounding_box(track.cluster.centroid, color="green")
-            # )
-            # self.dynamic_art.append(self.draw_fading_window(track))
 
         # Update 3d plot
         self.bb_scatter = self.ax_bb.scatter(
@@ -264,47 +182,9 @@ class Visualizer:
         #     f"Tracks Number: {len(trackbuffer.effective_tracks)}", loc="left"
         # )
 
-    def update_posture(self, tracks):
-        if not hasattr(self, "ax_post"):
-            return
-
-        # NOTE: the keypoints have a shape (num_of_tracks, 19)
-        self.ax_post.clear()
-        self.setup_subplot(self.ax_post)
-        self.ax_post.set_title("Posture Estimation")
-        for track in tracks:
-            reshaped_data = track.keypoints.reshape(3, -1)
-            reshaped_data[0] += track.state.x[0]
-            reshaped_data[2] += track.state.x[1]
-            # revert_static_skeleton(reshaped_data, track.cluster.centroid)
-            for connection in self.connections:
-                keypoint_1 = connection[0]
-                keypoint_2 = connection[1]
-
-                x_values = [reshaped_data[0][keypoint_1], reshaped_data[0][keypoint_2]]
-                z_values = [reshaped_data[1][keypoint_1], reshaped_data[1][keypoint_2]]
-                y_values = [reshaped_data[2][keypoint_1], reshaped_data[2][keypoint_2]]
-
-                self.ax_post.plot(x_values, y_values, z_values, color="black")
-
-            for keypoint_index in range(len(reshaped_data[0])):
-                color = self.keypoint_colors[keypoint_index]
-                marker = (
-                    "o" if keypoint_index != 3 else "s"
-                )  # Use square marker for the head
-                self.post_scatter = self.ax_post.scatter(
-                    reshaped_data[0][keypoint_index],
-                    reshaped_data[2][keypoint_index],
-                    reshaped_data[1][keypoint_index],
-                    c=color,
-                    marker=marker,
-                    s=100 if keypoint_index == 3 else 50,  # Larger size for the head
-                )
-
     def draw(self):
         plt.draw()
         plt.pause(0.1)  # Pause for a short time to allow for updating
-
 
 class ScreenAdapter:
     def __init__(self):
