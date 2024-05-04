@@ -34,8 +34,6 @@ def main():
         # Control loop
         while True:
             try:
-                t0 = time.time()
-
                 # Online mode
                 dataOk, _, detObj = IWR1443.read()
 
@@ -51,13 +49,8 @@ def main():
                         trackbuffer.track(effective_data, batch)
 
                     visual.update(trackbuffer, detObj)
-
-                    t_code = time.time() - t0
-                    t_sleep = max(0, SLEEPTIME - t_code)
-
-                    # NOTE: The exact SLEEPTIME might cause the system to occasionally lose
-                    # frames. In that case try a shorted sleep duration.
-                    time.sleep(t_sleep)
+                else:
+                    visual.update(trackbuffer)
 
             except KeyboardInterrupt:
                 del IWR1443

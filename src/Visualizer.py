@@ -4,12 +4,14 @@ import pyqtgraph as pg
 from PyQt5.QtWidgets import QApplication
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-from matplotlib.patches import Patch
+
+import abc
 
 import constants as const
 from Tracking import TrackBuffer, ClusterTrack
 from Utils import calc_projection_points
 
+from games.breakout.breakout import Breakout
 
 def calc_fade_square(track: ClusterTrack):
     center = calc_projection_points(
@@ -29,22 +31,47 @@ def calc_fade_square(track: ClusterTrack):
 
 class VisualManager:
     def __init__(self):
-        self.mode = const.SCREEN_CONNECTED
-        if self.mode:
+        if const.SCREEN_CONNECTED:
             self.visual = ScreenAdapter()
+        elif const.GAME:
+            self.visual = GameAdapter()
         else:
-            self.visual = Visualizer(raw_cloud=True, b_boxes=True)
+            self.visual = Visualizer()
 
-    def update(self, trackbuffer, detObj):
+    def update(self, trackbuffer, detObj=None):
         if const.SCREEN_CONNECTED:
             self.visual.update(trackbuffer)
+        elif const.GAME:
+            self.visual.update(trackbuffer)
         else:
-            self.visual.clear()
-            self.visual.update_raw(detObj["x"], detObj["y"], detObj["z"])
-            self.visual.update_bb(trackbuffer)
-            self.visual.draw()
+            self.visual.update(trackbuffer, detObj=detObj)
 
-class Visualizer:
+class Adapter(metaclass=abc.ABCMeta):
+    @classmethod
+    def __subclasshook__(cls, subclass):
+        return (hasattr(subclass, 'update') and 
+                callable(subclass.update) or 
+                NotImplemented)
+    
+    @abc.abstractmethod
+    def update(self, trackbuffer: TrackBuffer, **kwargs):
+        """
+        Update the visualizer with the current data.
+        """
+        raise NotImplementedError
+
+class GameAdapter(Adapter):
+    def __init__(self) -> None:
+        self.breakout = Breakout()
+
+    def update(self, trackbuffer: TrackBuffer, **kwargs):
+        if trackbuffer.effective_tracks:
+            track = trackbuffer.effective_tracks[0]
+            if track:
+                self.breakout.move(-track.displacement * 100)
+                track.displacement = 0
+
+class Visualizer(Adapter):
     def setup_subplot(self, subplot: Axes3D):
         axis_dim = const.V_3D_AXIS
         subplot.set_xlim(axis_dim[0][0], axis_dim[0][1])
@@ -57,7 +84,7 @@ class Visualizer:
         subplot.invert_xaxis()
         return subplot.scatter([], [], [])
 
-    def __init__(self, raw_cloud=False, b_boxes=False):
+    def __init__(self, raw_cloud=True, b_boxes=True):
         self.dynamic_art = []
         fig = plt.figure()
         plots_num = sum([raw_cloud, b_boxes])
@@ -75,15 +102,23 @@ class Visualizer:
             self.setup_subplot(self.ax_bb)
             self.bb_scatter = None
             self.ax_bb.set_title("Target Tracking")
-            # legend_handles = [
-            #     Patch(color="red", label="Motion Model Prediction"),
-            #     Patch(color="green", label="Pointcloud's Position"),
-            #     Patch(color="blue", label="Kalman Filter Output"),
-            # ]
-            # self.ax_bb.legend(handles=legend_handles)
             plots_index += 1
 
         plt.show(block=False)
+
+    def update(self, trackbuffer: TrackBuffer, **kwargs):
+            if "detObj" not in kwargs:
+                raise ValueError("detObj not found in kwargs")
+            
+            detObj = kwargs["detObj"]
+
+            if detObj is None:
+                return
+
+            self.clear()
+            self.update_raw(detObj["x"], detObj["y"], detObj["z"])
+            self.update_bb(trackbuffer)
+            self.draw()
 
     def clear(self):
         if not hasattr(self, "ax_bb"):
@@ -186,7 +221,7 @@ class Visualizer:
         plt.draw()
         plt.pause(0.1)  # Pause for a short time to allow for updating
 
-class ScreenAdapter:
+class ScreenAdapter(Adapter):
     def __init__(self):
         self.win = pg.GraphicsLayoutWidget()
         self.view = self.win.addPlot()
@@ -206,7 +241,7 @@ class ScreenAdapter:
 
         self.PIX_TO_M = 3779 * const.V_SCALLING
 
-    def update(self, trackbuffer: TrackBuffer):
+    def update(self, trackbuffer: TrackBuffer, **kwargs):
         # Clear previous items in the view
         self.scatter.clear()
         for track in trackbuffer.effective_tracks:

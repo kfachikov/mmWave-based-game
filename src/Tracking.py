@@ -162,8 +162,8 @@ class ClusterTrack:
         Keypoint x, y, z coordinates of the tracked 19 joints
     color : numpy.ndarray
         Random color assigned to the track for visualization (for visualization purposes).
-    predict_x : numpy.ndarray
-        Predicted state vector (for visualization purposes).
+    current_x : [number]
+        Predicted x coordinate.
 
     Methods
     -------
@@ -215,12 +215,13 @@ class ClusterTrack:
         self.lifetime = 0
         self.keypoints = const.MODEL_DEFAULT_POSTURE
 
-        # For visualizing purposes only
-        self.predict_x = self.state.x
+        self.current_x = cluster.centroid[0]
+        self.displacement = 0
+        
         self.color = np.random.rand(
             3,
         )
-
+        
     def _estimate_point_num(self):
         """
         Estimate the expected number of points in the cluster.
@@ -360,7 +361,9 @@ class ClusterTrack:
             F=const.MOTION_MODEL.KF_F(dt),
             Q=const.MOTION_MODEL.KF_Q_DISCR(dt),
         )
-        self.predict_x = self.state.x
+        
+        self.displacement = self.state.x[0] - self.current_x
+        self.current_x = self.state.x[0]
 
     def update_state(self):
         """

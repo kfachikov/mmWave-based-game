@@ -9,6 +9,8 @@ PIXEL_TO_METERS = 0.000265
 PROFILING = False
 SCREEN_CONNECTED = False
 
+GAME = True
+
 ##### Paths and Ports #####
 P_CONFIG_PATH = "./config_cases/8.5_new.cfg"
 P_MODEL_PATH = "./model/MARS.h5"
