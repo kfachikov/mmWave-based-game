@@ -213,8 +213,8 @@ class ScreenAdapter:
             center, rect_size = calc_fade_square(track)
 
             self.scatter.addPoints(
-                x=[center[0] - rect_size / 2],
-                y=[center[1] - rect_size / 2],
+                x=center[0] - rect_size / 2,
+                y=center[1] - rect_size / 2,
                 size=rect_size * self.PIX_TO_M,
             )
 
