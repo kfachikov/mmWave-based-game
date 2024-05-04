@@ -1,77 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import pyqtgraph as pg
-from PyQt5.QtWidgets import QApplication
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-import abc
-
 import constants as const
-from Tracking import TrackBuffer, ClusterTrack
-from Utils import calc_projection_points
 
-from games.breakout.breakout import Breakout
+from Tracking import TrackBuffer
+from visualisers.visualiser import Visualiser
 
-def calc_fade_square(track: ClusterTrack):
-    center = calc_projection_points(
-        track.state.x[0] + track.keypoints[11],
-        track.state.x[1] + track.keypoints[12],
-        track.keypoints[13],
-    )
-    rect_size = max(
-        const.V_SCREEN_FADE_SIZE_MIN,
-        min(
-            const.V_SCREEN_FADE_SIZE_MAX,
-            const.V_SCREEN_FADE_SIZE_MAX
-            - (track.state.x[1] + track.keypoints[12]) * const.V_SCREEN_FADE_WEIGHT,
-        ),
-    )
-    return (center, rect_size)
-
-class VisualManager:
-    def __init__(self):
-        if const.SCREEN_CONNECTED:
-            self.visual = ScreenAdapter()
-        elif const.GAME:
-            self.visual = GameAdapter()
-        else:
-            self.visual = Visualizer()
-
-    def update(self, trackbuffer, detObj=None):
-        if const.SCREEN_CONNECTED:
-            self.visual.update(trackbuffer)
-        elif const.GAME:
-            self.visual.update(trackbuffer)
-        else:
-            self.visual.update(trackbuffer, detObj=detObj)
-
-class Adapter(metaclass=abc.ABCMeta):
-    @classmethod
-    def __subclasshook__(cls, subclass):
-        return (hasattr(subclass, 'update') and 
-                callable(subclass.update) or 
-                NotImplemented)
-    
-    @abc.abstractmethod
-    def update(self, trackbuffer: TrackBuffer, **kwargs):
-        """
-        Update the visualizer with the current data.
-        """
-        raise NotImplementedError
-
-class GameAdapter(Adapter):
-    def __init__(self) -> None:
-        self.breakout = Breakout()
-
-    def update(self, trackbuffer: TrackBuffer, **kwargs):
-        if trackbuffer.effective_tracks:
-            track = trackbuffer.effective_tracks[0]
-            if track:
-                self.breakout.move(-track.displacement * 100)
-                track.displacement = 0
-
-class Visualizer(Adapter):
+class PlotVisualiser(Visualiser):
     def setup_subplot(self, subplot: Axes3D):
         axis_dim = const.V_3D_AXIS
         subplot.set_xlim(axis_dim[0][0], axis_dim[0][1])
@@ -213,45 +150,7 @@ class Visualizer(Adapter):
         self.bb_scatter = self.ax_bb.scatter(
             x_all, y_all, z_all, c=color_all, marker="o"
         )
-        # self.ax_bb.set_title(
-        #     f"Tracks Number: {len(trackbuffer.effective_tracks)}", loc="left"
-        # )
 
     def draw(self):
         plt.draw()
         plt.pause(0.1)  # Pause for a short time to allow for updating
-
-class ScreenAdapter(Adapter):
-    def __init__(self):
-        self.win = pg.GraphicsLayoutWidget()
-        self.view = self.win.addPlot()
-        self.view.setAspectLocked()
-        self.view.getViewBox().setBackgroundColor((255, 255, 255))
-        self.view.setRange(
-            xRange=(-const.SCREEN_SIZE[0] / 2, const.SCREEN_SIZE[0] / 2),
-            yRange=(const.SCREEN_HEIGHT, const.SCREEN_SIZE[1]),
-        )
-        self.view.invertX()
-        self.win.showMaximized()
-
-        # Create a scatter plot with squares
-        brush = pg.mkBrush(color=(0, 0, 0))
-        self.scatter = pg.ScatterPlotItem(pen=None, brush=brush, symbol="s")
-        self.view.addItem(self.scatter)
-
-        self.PIX_TO_M = 3779 * const.V_SCALLING
-
-    def update(self, trackbuffer: TrackBuffer, **kwargs):
-        # Clear previous items in the view
-        self.scatter.clear()
-        for track in trackbuffer.effective_tracks:
-            center, rect_size = calc_fade_square(track)
-
-            self.scatter.addPoints(
-                x=center[0] - rect_size / 2,
-                y=center[1] - rect_size / 2,
-                size=rect_size * self.PIX_TO_M,
-            )
-
-        # Update the view
-        QApplication.processEvents()

@@ -3,7 +3,7 @@ import os
 from PyQt5.QtWidgets import QApplication
 from wakepy import keep
 import constants as const
-from Visualizer import VisualManager
+from visual_manager import VisualManager
 from Utils import OfflineManager, normalize_data
 from keras.models import load_model
 from Tracking import (

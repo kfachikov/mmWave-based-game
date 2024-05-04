@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QApplication
 from wakepy import keep
 import constants as const
 from ReadDataIWR1443 import ReadIWR14xx
-from Visualizer import VisualManager
+from visual_manager import VisualManager
 from keras.models import load_model
 from Utils import (
     normalize_data,
