@@ -5,4 +5,5 @@
 **/gif
 **/demos
 
-venv
+/venv
+/.vscode
