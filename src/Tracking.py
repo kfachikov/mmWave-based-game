@@ -569,7 +569,7 @@ class TrackBuffer:
 
     def _associate_points_to_tracks(self, full_set: np.array):
         """
-        Associate points to existing tracks and handle inner cluster separation.
+        Associate points to existing tracks.
 
         Parameters
         ----------
@@ -582,7 +582,6 @@ class TrackBuffer:
             Unassigned points.
         """
         unassigned, clouds = self._get_gated_clouds(full_set)
-        new_inner_clusters = []
 
         for j, track in enumerate(self.effective_tracks):
             if len(clouds[j]) == 0:
@@ -592,13 +591,6 @@ class TrackBuffer:
                 # Something is recorder about this track
                 track.update_lifetime(dt=self.dt, reset=True)
                 track.associate_pointcloud(np.array(clouds[j]))
-
-                # inner cluster separation
-                # new_inner_clusters.append(track.seek_inner_clusters())
-
-        # In case inner clusters are found, create new tracks for them
-        for inner_cluster in new_inner_clusters:
-            self._add_tracks(inner_cluster)
 
         return unassigned
 
