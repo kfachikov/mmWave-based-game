@@ -2,6 +2,8 @@
 
 The system is specifically designed to receive radar data from the **IWR1443** millimeter-wave sensor by Texas Instruments (using [IWR1443-Python-API](https://github.com/FmmW-Group/IWR1443-Python-API)).
 
+The **breakout** game is inspired by and built upon [this implementation](https://github.com/MatthewTamYT/Breakout).  
+
 ## About
 
 This is the repository for my BSc thesis: 
