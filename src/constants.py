@@ -4,7 +4,6 @@ from scipy.linalg import block_diag
 
 PIXEL_TO_METERS = 0.000265
 
-
 ##### General Flags #####
 PROFILING = False
 SCREEN_CONNECTED = False
@@ -55,7 +54,6 @@ V_SCREEN_FADE_WEIGHT: float = (
 V_BBOX_HEIGHT = 1.8
 V_BBOX_EYESIGHT_HEIGHT = 1.75
 
-
 ###### Frames and Buffering #######
 FB_FRAMES_SKIP = 0
 FB_EXPERIMENT_FILE_SIZE = 200
@@ -67,7 +65,6 @@ FB_FRAMES_BATCH = 1
 FB_FRAMES_BATCH_STATIC = 1
 FB_HEIGHT_FRAME_PERIOD = 30
 FB_WIDTH_FRAME_PERIOD = 20
-
 
 ####### Clustering #######
 # DBScan
@@ -83,7 +80,6 @@ DB_INNER_EPS = 0.1
 DB_INNER_MIN_SAMPLES = 8
 DB_MIN_SAMPLES_MAX = 25
 
-
 ###### Tracking and Kalman ######
 # Tracks
 TR_MAX_TRACKS = 2
@@ -91,6 +87,10 @@ TR_LIFETIME_DYNAMIC = 3  # sec
 TR_LIFETIME_STATIC = 5
 TR_VEL_THRES = 0.1  # Velocity threshold for STATIC or DYNAMIC track
 TR_GATE = 4.5
+
+TR_X_THRESH = 10
+TR_Y_THRESH = 10
+TR_Z_THRESH = 2.5
 
 # Kalman
 KF_R_STD = 0.1
@@ -108,73 +108,6 @@ KF_SPREAD_LIM = [0.2, 0.2, 2, 1.2, 1.2, 0.2] # Spread limitation in a single dir
 KF_A_SPR = 0.9
 
 ############### Model ####################
-# Intensity Normalization
-INTENSITY_MU = 193
-INTENSITY_STD = 252
-
-MODEL_DEFAULT_POSTURE = np.array(
-    [
-        0.0000,
-        -0.0007,
-        -0.0006,
-        -0.0038,
-        -0.1820,
-        -0.2540,
-        -0.2579,
-        0.1830,
-        0.2957,
-        0.2940,
-        -0.0805,
-        -0.1141,
-        -0.1232,
-        -0.1358,
-        0.0796,
-        0.1436,
-        0.1558,
-        0.1720,
-        -0.0007,
-        0.7699,
-        1.0906,
-        1.4020,
-        1.5513,
-        1.2893,
-        1.0360,
-        0.7994,
-        1.2865,
-        1.0483,
-        0.8117,
-        0.7670,
-        0.3428,
-        0.0000,
-        -0.0746,
-        0.7713,
-        0.3706,
-        -0.0128,
-        -0.0796,
-        1.3255,
-        0.0752,
-        0.0533,
-        0.0203,
-        0.0000,
-        0.0496,
-        0.1350,
-        0.1303,
-        0.0345,
-        0.1277,
-        0.1050,
-        0.0392,
-        0.0533,
-        0.0786,
-        -0.0056,
-        0.0346,
-        -0.0007,
-        0.0683,
-        -0.0082,
-        0.0312,
-    ]
-)
-
-
 # Motion Models
 class CONST_ACC_MODEL:
     KF_DIM = [9, 6]

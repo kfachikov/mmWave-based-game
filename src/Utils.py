@@ -283,9 +283,9 @@ def cluster_pointcloud_dbscan(pointcloud, eps=const.DB_EPS, min_samples=const.DB
     clusters = list(clustered_points.values())
     return clusters
 
-def point_transform_to_standard_axis(input):
+def transform_point_sensor_to_world_axis(input):
     """
-    Transform 3D point coordinates and velocities to a standard axis.
+    Transform 3D point coordinates and velocities in sensor axis to a standard axis.
 
     The transformation includes translation and rotation to bring the input point into a standard coordinate system.
 
@@ -393,7 +393,7 @@ def normalize_data(detObj):
             vz = input_data[index, 3] * input_data[index, 2] / r
 
         # Translate points to new coordinate system
-        transformed_point = point_transform_to_standard_axis(
+        transformed_point = transform_point_sensor_to_world_axis(
             np.array(
                 [
                     input_data[index, 0],
@@ -412,7 +412,7 @@ def normalize_data(detObj):
 
         # Perform scene constraints filtering
         if (
-            transformed_point[2] <= 2.5
+            transformed_point[2] <= const.TR_Z_THRESH
             and transformed_point[2] > 0
             and transformed_point[1] > 0
         ):

@@ -158,8 +158,6 @@ class ClusterTrack:
         Current status of the track.
     lifetime : int
         Number of frames the track has been active.
-    keypoints : list of floats
-        Keypoint x, y, z coordinates of the tracked 19 joints
     color : numpy.ndarray
         Random color assigned to the track for visualization (for visualization purposes).
     current_x : [number]
@@ -213,7 +211,6 @@ class ClusterTrack:
         self.state = KalmanState(cluster.centroid)
         self.status = ACTIVE
         self.lifetime = 0
-        self.keypoints = const.MODEL_DEFAULT_POSTURE
 
         self.current_x = cluster.centroid[0]
         self.displacement = 0
