@@ -40,7 +40,10 @@ class Breakout:
         self.player_paddle.draw()
         self.ball.draw()
 
-        self._draw_text('CLICK ANYWHERE TO START', self.font, const.COLOR_TEXT, 100, const.SCREEN_HEIGHT // 2 + 100)
+        self.live_ball = True
+        self.ball.reset(self.player_paddle.x + (self.player_paddle.width // 2), self.player_paddle.y - self.player_paddle.height)
+        self.player_paddle.reset()
+        self.wall.initialise_wall()
 
         pygame.display.update()
 
