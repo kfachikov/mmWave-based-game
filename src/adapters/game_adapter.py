@@ -26,3 +26,7 @@ class GameAdapter(Adapter):
                 self.breakout.move(displacement_pixels)
                 
                 self.current_player_pos = new_player_pos
+            else:
+                self.breakout.move(0)
+        else: 
+            self.breakout.move(0)

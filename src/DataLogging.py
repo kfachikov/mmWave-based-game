@@ -8,6 +8,14 @@ import pandas as pd
 import constants as const
 from ReadDataIWR1443 import ReadIWR14xx
 
+from visual_manager import VisualManager
+from Tracking import (
+    TrackBuffer,
+    BatchedData,
+)
+from Utils import (
+    normalize_data,
+)
 
 def query_to_overwrite(
     question="An experiment file with the same name already exists. Overwrite?\n",
@@ -31,11 +39,29 @@ def read_thread(queue: Queue, IWR1443: ReadIWR14xx, SLEEPTIME, stop_event: Event
     frame_select = const.FB_FRAMES_SKIP + 1
 
     try:
+        trackbuffer = TrackBuffer()
+        batch = BatchedData()
+        visual = VisualManager()
         while not stop_event.is_set():
             t0 = time.time()
             dataOk, frameNumber, detObj = IWR1443.read()
             if dataOk and frameNumber % frame_select == 0:
                 queue.put((frameNumber, detObj))
+
+            if dataOk:
+                now = time.time()
+                trackbuffer.dt = now - trackbuffer.t
+                trackbuffer.t = now
+                # Apply scene constraints, translation
+                effective_data = normalize_data(detObj)
+
+                if effective_data.shape[0] != 0:
+                    # Tracking Module
+                    trackbuffer.track(effective_data, batch)
+
+                visual.update(trackbuffer, detObj)
+            else:
+                visual.update(trackbuffer)
 
             sys.stdout.write(f"\rFrame Number: {frameNumber}")
             sys.stdout.flush()

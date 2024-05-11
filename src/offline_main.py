@@ -11,9 +11,11 @@ from Tracking import (
     BatchedData,
 )
 
+import time
+
 ########### Set the experiment path here ############
 
-EXPERIMENT_PATH = "./dataset/log/mmWave/tryout"
+EXPERIMENT_PATH = "./dataset/log/mmWave/try"
 
 #####################################################
 
@@ -38,9 +40,9 @@ def offline_main():
     with keep.presenting():
         # Control loop
         while not sensor_data.is_finished():
+            t0 = time.time()
             try:
                 dataOk, _, detObj = sensor_data.get_data()
-
                 if dataOk:
                     if first_iter:
                         trackbuffer.dt = SLEEPTIME
@@ -57,9 +59,14 @@ def offline_main():
                         trackbuffer.track(effective_data, batch)
 
                     visual.update(trackbuffer, detObj)
+                else:
+                    visual.update(trackbuffer)
 
             except KeyboardInterrupt:
                 break
-
+            finally:
+                t_code = time.time() - t0
+                t_sleep = max(0, SLEEPTIME / 2 - t_code)
+                time.sleep(t_sleep)
 
 offline_main()
