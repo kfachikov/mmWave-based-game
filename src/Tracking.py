@@ -212,9 +212,6 @@ class ClusterTrack:
         self.status = ACTIVE
         self.lifetime = 0
 
-        self.current_x = cluster.centroid[0]
-        self.displacement = 0
-        
         self.color = np.random.rand(
             3,
         )
@@ -359,9 +356,6 @@ class ClusterTrack:
             Q=const.MOTION_MODEL.KF_Q_DISCR(dt),
         )
         
-        self.displacement = self.state.x[0] - self.current_x
-        self.current_x = self.state.x[0]
-
     def update_state(self):
         """
         Update the state of the Kalman filter based on the associated measurement (pointcloud centroid).

@@ -7,7 +7,6 @@ PIXEL_TO_METERS = 0.000265
 ##### General Flags #####
 PROFILING = False
 SCREEN_CONNECTED = False
-
 GAME = True
 
 ##### Paths and Ports #####
@@ -28,6 +27,9 @@ P_CLI_PORT = "COM12"
 P_DATA_PORT = "COM11"
 
 ###### Scene Setup ######
+# Playground
+PLAYGROUND_WIDTH = 2 # meters
+
 # Sensitive Coordinates
 M_X = 0.28
 M_Y = -0.5
@@ -39,13 +41,13 @@ SCREEN_SIZE = [1.6, 0.9]  # Monitor Size Approximation
 SCREEN_HEIGHT = 2
 
 # Sensor Attributes
-S_HEIGHT = 1.6
-S_TILT = -5  # degrees (-180, 180)
+S_HEIGHT = 1 # meters
+S_TILT = 0  # degrees (-180, 180)
 
 # Plot Parameters
 V_SCALLING = 1  # Scaling parameter (only for emulating)
 
-V_3D_AXIS = [[-2.5, 2.5], [0, 5], [0, 3]]
+V_3D_AXIS = [[-1.25, 1.25], [0, 5], [0, 3]]
 V_SCREEN_FADE_SIZE_MAX: float = 0.3
 V_SCREEN_FADE_SIZE_MIN: float = 0.14
 V_SCREEN_FADE_WEIGHT: float = (

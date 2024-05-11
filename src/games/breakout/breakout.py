@@ -31,6 +31,19 @@ class Breakout:
         img = font.render(text, True, color_text)
         self.screen.blit(img, (x, y))
 
+    def start(self):
+        self.clock.tick(const.FPS)
+
+        self.screen.fill(const.COLOR_BACKGROUND)
+
+        self.wall.update_wall()
+        self.player_paddle.draw()
+        self.ball.draw()
+
+        self._draw_text('CLICK ANYWHERE TO START', self.font, const.COLOR_TEXT, 100, const.SCREEN_HEIGHT // 2 + 100)
+
+        pygame.display.update()
+
     def move(self, paddle_displacement):
         self.clock.tick(const.FPS)
 
@@ -59,7 +72,8 @@ class Breakout:
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                run = False
+                pygame.quit()
+                return
             if event.type == pygame.MOUSEBUTTONDOWN and self.live_ball == False:
                 self.live_ball = True
                 self.ball.reset(self.player_paddle.x + (self.player_paddle.width // 2), self.player_paddle.y - self.player_paddle.height)

@@ -54,6 +54,11 @@ class Paddle():
 
     def move(self, displacement):
         self.direction = 0
+        displacement = -displacement
+        if displacement < 0:
+            displacement = - min(abs(displacement), self.rect.x)
+        else:
+            displacement = min(displacement, const.SCREEN_WIDTH - (self.rect.x + self.width))
         self.rect.x += displacement
         self.direction = -1 if displacement < 0 else 1
 
