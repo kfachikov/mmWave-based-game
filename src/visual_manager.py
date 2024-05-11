@@ -1,22 +1,17 @@
 import constants as const
 
-from visualisers.game import GameVisualiser
-from visualisers.plot import PlotVisualiser
-from visualisers.screen import ScreenVisualiser
+from adapters.game_adapter import GameAdapter
+from adapters.plot_adapter import PlotAdapter
+from adapters.screen_adapter import ScreenAdapter
 
 class VisualManager:
     def __init__(self):
         if const.SCREEN_CONNECTED:
-            self.visual = ScreenVisualiser()
+            self.visual = ScreenAdapter()
         elif const.GAME:
-            self.visual = GameVisualiser()
+            self.visual = GameAdapter()
         else:
-            self.visual = PlotVisualiser()
+            self.visual = PlotAdapter()
 
     def update(self, trackbuffer, detObj=None):
-        if const.SCREEN_CONNECTED:
-            self.visual.update(trackbuffer)
-        elif const.GAME:
-            self.visual.update(trackbuffer)
-        else:
-            self.visual.update(trackbuffer, detObj=detObj)
+        self.visual.update(trackbuffer, detObj=detObj)

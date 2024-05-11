@@ -4,12 +4,12 @@ from PyQt5.QtWidgets import QApplication
 import constants as const
 
 from Tracking import TrackBuffer, ClusterTrack
-from visualisers.visualiser import Visualiser
+from adapters.adapter import Adapter
 
 from Utils import calc_projection_points
 
 
-class ScreenVisualiser(Visualiser):
+class ScreenAdapter(Adapter):
     def __init__(self):
         self.win = pg.GraphicsLayoutWidget()
         self.view = self.win.addPlot()

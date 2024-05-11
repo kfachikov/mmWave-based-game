@@ -2,7 +2,7 @@ import abc
 
 from Tracking import TrackBuffer
 
-class Visualiser(metaclass=abc.ABCMeta):
+class Adapter(metaclass=abc.ABCMeta):
     @classmethod
     def __subclasshook__(cls, subclass):
         return (hasattr(subclass, 'update') and 

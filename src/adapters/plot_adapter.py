@@ -6,9 +6,9 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import constants as const
 
 from Tracking import TrackBuffer
-from visualisers.visualiser import Visualiser
+from adapters.adapter import Adapter
 
-class PlotVisualiser(Visualiser):
+class PlotAdapter(Adapter):
     def setup_subplot(self, subplot: Axes3D):
         axis_dim = const.V_3D_AXIS
         subplot.set_xlim(axis_dim[0][0], axis_dim[0][1])

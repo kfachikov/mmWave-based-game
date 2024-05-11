@@ -463,7 +463,7 @@ class TrackBuffer:
             track for track in self.effective_tracks if track.status != INACTIVE
         ]
 
-    def _calc_dist_fun(self, full_set: np.array):
+    def _find_closest_track(self, full_set: np.array):
         """
         Calculate the Mahalanobis distance matrix for gating.
 
@@ -478,7 +478,7 @@ class TrackBuffer:
             An array representing the associated track (entry) for each point (index).
             If no track is associated with a point, the entry is set to None.
         """
-        dist_matrix = np.empty((full_set.shape[0], len(self.effective_tracks)))
+        bidding_score = np.empty((full_set.shape[0], len(self.effective_tracks)))
         associated_track_for = np.full(full_set.shape[0], None, dtype=object)
 
         for j, track in enumerate(self.effective_tracks):
@@ -490,20 +490,21 @@ class TrackBuffer:
                 # Innovation for each measurement
                 y_ij = np.array(point[:6]) - H_i
 
-                # Distance function (d^2)
-                dist_matrix[i][j] = np.log(np.abs(np.linalg.det(C_g_j))) + np.dot(
-                    np.dot(y_ij.T, np.linalg.inv(C_g_j)), y_ij
-                )
+                # Mahalanobis Distance (squared)
+                d_squared = np.dot(np.dot(y_ij.T, np.linalg.inv(C_g_j)), y_ij)
+
+                # bidding score (squared)
+                bidding_score[i][j] = np.log(np.abs(np.linalg.det(C_g_j))) + d_squared
 
                 # Perform Gate threshold check
-                if dist_matrix[i][j] < const.TR_GATE:
+                if bidding_score[i][j] < const.TR_GATE:
                     # Just choose the closest mahalanobis distance
                     if associated_track_for[i] is None:
                         associated_track_for[i] = j
                     else:
                         if (
-                            dist_matrix[i][j]
-                            < dist_matrix[i][int(associated_track_for[i])]
+                            bidding_score[i][j]
+                            < bidding_score[i][int(associated_track_for[i])]
                         ):
                             associated_track_for[i] = j
 
@@ -555,16 +556,16 @@ class TrackBuffer:
         unassigned = np.empty((0, 8), dtype="float")
         clusters = [[] for _ in range(len(self.effective_tracks))]
         # Simple matrix has len = len(full_set) and has the index of the chosen track.
-        associated_track_for = self._calc_dist_fun(full_set)
+        point_to_closest_track_assignment = self._find_closest_track(full_set)
 
         for i, point in enumerate(full_set):
-            if associated_track_for[i] is None:
+            if point_to_closest_track_assignment[i] is None:
                 unassigned = np.append(unassigned, [point], axis=0)
             else:
-                clusters[associated_track_for[i]].append(point)
+                clusters[point_to_closest_track_assignment[i]].append(point)
         return unassigned, clusters
 
-    def _associate_points_to_tracks(self, full_set: np.array):
+    def _assign_points_to_tracks(self, full_set: np.array):
         """
         Associate points to existing tracks.
 
@@ -610,7 +611,7 @@ class TrackBuffer:
         self._predict_all()
 
         # Association Step
-        unassigned = self._associate_points_to_tracks(pointcloud)
+        unassigned = self._assign_points_to_tracks(pointcloud)
         self._maintain_tracks()
 
         # Update Step

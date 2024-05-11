@@ -43,8 +43,8 @@ class Breakout:
         if self.live_ball:
             self.player_paddle.move(displacement=paddle_displacement)
             self.game_over = self.ball.move(self.wall, self.player_paddle)
-            if self.game_over != 0:
-                self.live_ball = False
+            # if self.game_over != 0:
+            #     self.live_ball = False
 
         # print player instructions
         if not self.live_ball:
