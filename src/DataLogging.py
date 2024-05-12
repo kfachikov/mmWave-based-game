@@ -38,6 +38,7 @@ def query_to_overwrite(
 def read_thread(queue: Queue, IWR1443: ReadIWR14xx, SLEEPTIME, stop_event: Event):
     frame_select = const.FB_FRAMES_SKIP + 1
 
+    frame_number = 1
     try:
         trackbuffer = TrackBuffer()
         batch = BatchedData()
@@ -46,9 +47,11 @@ def read_thread(queue: Queue, IWR1443: ReadIWR14xx, SLEEPTIME, stop_event: Event
         while not stop_event.is_set():
             t0 = time.time()
 
-            dataOk, frameNumber, detObj = IWR1443.read()
-            if dataOk and frameNumber % frame_select == 0:
-                queue.put((frameNumber, detObj))
+            dataOk, _, detObj = IWR1443.read()
+            if dataOk and frame_number % frame_select == 0:
+                queue.put((frame_number, detObj))
+            
+            frame_number += 1
 
             if dataOk:
                 now = time.time()
@@ -65,11 +68,11 @@ def read_thread(queue: Queue, IWR1443: ReadIWR14xx, SLEEPTIME, stop_event: Event
             else:
                 visual.update(trackbuffer)
 
-            sys.stdout.write(f"\rFrame Number: {frameNumber}")
+            sys.stdout.write(f"\rFrame Number: {frame_number}")
             sys.stdout.flush()
 
             t_code = time.time() - t0
-            t_sleep = max(0, SLEEPTIME - t_code)
+            t_sleep = max(0, SLEEPTIME / 2 - t_code)
             time.sleep(t_sleep)
 
     except KeyboardInterrupt:

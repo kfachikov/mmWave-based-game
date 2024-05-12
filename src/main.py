@@ -55,7 +55,7 @@ def main():
                     visual.update(trackbuffer)
 
                 t_code = time.time() - t0
-                t_sleep = max(0, SLEEPTIME - t_code)
+                t_sleep = max(0, SLEEPTIME / 2 - t_code)
                 time.sleep(t_sleep)
 
             except KeyboardInterrupt:
