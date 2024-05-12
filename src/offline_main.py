@@ -15,7 +15,7 @@ import time
 
 ########### Set the experiment path here ############
 
-EXPERIMENT_PATH = "./dataset/log/mmWave/try"
+EXPERIMENT_PATH = "./dataset/log/mmWave/slow-speed-game-three"
 
 #####################################################
 
@@ -66,7 +66,7 @@ def offline_main():
                 break
             finally:
                 t_code = time.time() - t0
-                t_sleep = max(0, SLEEPTIME / 2 - t_code)
+                t_sleep = max(0, SLEEPTIME - t_code)
                 time.sleep(t_sleep)
 
 offline_main()

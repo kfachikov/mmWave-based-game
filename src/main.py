@@ -34,6 +34,8 @@ def main():
         # Control loop
         while True:
             try:
+                t0 = time.time()
+
                 # Online mode
                 dataOk, _, detObj = IWR1443.read()
 
@@ -51,6 +53,10 @@ def main():
                     visual.update(trackbuffer, detObj)
                 else:
                     visual.update(trackbuffer)
+
+                t_code = time.time() - t0
+                t_sleep = max(0, SLEEPTIME - t_code)
+                time.sleep(t_sleep)
 
             except KeyboardInterrupt:
                 del IWR1443

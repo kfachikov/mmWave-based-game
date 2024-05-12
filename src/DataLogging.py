@@ -42,8 +42,10 @@ def read_thread(queue: Queue, IWR1443: ReadIWR14xx, SLEEPTIME, stop_event: Event
         trackbuffer = TrackBuffer()
         batch = BatchedData()
         visual = VisualManager()
+
         while not stop_event.is_set():
             t0 = time.time()
+
             dataOk, frameNumber, detObj = IWR1443.read()
             if dataOk and frameNumber % frame_select == 0:
                 queue.put((frameNumber, detObj))
@@ -65,8 +67,9 @@ def read_thread(queue: Queue, IWR1443: ReadIWR14xx, SLEEPTIME, stop_event: Event
 
             sys.stdout.write(f"\rFrame Number: {frameNumber}")
             sys.stdout.flush()
+
             t_code = time.time() - t0
-            t_sleep = max(0, SLEEPTIME / 2 - t_code)
+            t_sleep = max(0, SLEEPTIME - t_code)
             time.sleep(t_sleep)
 
     except KeyboardInterrupt:
