@@ -37,7 +37,7 @@ class Ball():
     reset(x, y)
         Resets the ball to its initial position.
     """
-    def __init__(self, screen, x, y, speed_max = 10):
+    def __init__(self, screen, x, y, speed_max = 5):
         self.screen = screen
         self.ball_rad = int(0.5 * const.SCREEN_HEIGHT / const.ROW_NUM * const.BALL_SIZE_COEF)
         self.speed_max = speed_max
