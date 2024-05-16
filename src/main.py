@@ -47,9 +47,9 @@ def main():
                     effective_data = normalize_data(detObj)
 
                     if effective_data.shape[0] != 0:
+                        # TODO: Remove IF as the ELSE would never happen.
                         # Tracking Module
                         trackbuffer.track(effective_data, batch)
-
                     visual.update(trackbuffer, detObj)
                 else:
                     visual.update(trackbuffer)

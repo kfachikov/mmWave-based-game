@@ -8,9 +8,14 @@ from Utils import (
     Buffer,
 )
 from typing import List
+from enum import Enum
 
 ACTIVE = 1
 INACTIVE = 0
+
+class Status(Enum):
+    STATIC = 0,
+    DYNAMIC = 1
 
 STATIC = True
 DYNAMIC = False
@@ -158,13 +163,23 @@ class ClusterTrack:
         Current status of the track.
     lifetime : int
         Number of frames the track has been active.
+    num_points_associated_last : int
+        Number of points associated with the track in the last frame.
+    num_dynamic_points_associated_last : int
+        Number of dynamic points associated with the track in the last frame.
+    track_status : Status
+        The status of the track (STATIC or DYNAMIC).
     color : numpy.ndarray
         Random color assigned to the track for visualization (for visualization purposes).
-    current_x : [number]
-        Predicted x coordinate.
 
     Methods
     -------
+    compute_cartesian_velocity()
+        Compute the cartesian velocity of the track using the a priori state, with respect to the x and y dimensions.
+    
+    __get_num_dynamic_points_associated(pointcloud)
+        Get the number of dynamic points associated with the track.
+
     predict_state(dt)
         Predict the state of the Kalman filter based on the time multiplier.
 
@@ -212,15 +227,35 @@ class ClusterTrack:
         self.status = ACTIVE
         self.lifetime = 0
 
+        self.num_points_associated_last = cluster.point_num
+        self.num_dynamic_points_associated_last = self._get_num_dynamic_points_associated(cluster.pointcloud)
+
+        self.track_status = Status.DYNAMIC if self.num_dynamic_points_associated_last > 3 else Status.STATIC
+
         self.color = np.random.rand(
             3,
         )
         
+    def compute_cartesian_velocity(self):
+        """
+        Compute the cartesian velocity of the track using the a priory state, with respect to the x and y dimensions.
+        """
+        return math.sqrt(np.sum((self.state.x_prior[3:5] ** 2)))
+    
+    def _get_num_dynamic_points_associated(self, pointcloud: np.array):
+        """
+        Get the number of dynamic points associated with the track.
+
+        A point is considered dynamic if its Doppler value is greater than the DOPPLER_THRESHOLD.
+        """
+        return 0 if not len(pointcloud) else np.sum(pointcloud[:, 6] > const.DOPPLER_THRESHOLD)
+
     def _estimate_point_num(self):
         """
         Estimate the expected number of points in the cluster.
         """
         if const.KF_ENABLE_EST:
+            # TODO: Instead of self.cluster.point_num, use my_good_points
             if self.cluster.point_num > self.N_est:
                 self.N_est = self.cluster.point_num
             else:
@@ -235,28 +270,29 @@ class ClusterTrack:
         """
         Estimate the spread of measurements in each dimension.
         """
-        for m in range(len(self.cluster.min_vals)):
-            # Difference between max and min values in the cluster (in one dimension)
-            spread = self.cluster.max_vals[m] - self.cluster.min_vals[m]
+        if self.cluster.point_num > 1:
+            for m in range(len(self.cluster.min_vals)):
+                # Difference between max and min values in the cluster (in one dimension)
+                spread = self.cluster.max_vals[m] - self.cluster.min_vals[m]
 
-            # Unbiased spread estimation - the more points we have, the tighter the spread we create is
-            if self.cluster.point_num != 1:
+                # Unbiased spread estimation - the more points we have, the tighter the spread we create is
                 spread = (
+                    # TODO: Use my_good_points instead of self.cluster.point_num
                     spread * (self.cluster.point_num + 1) / (self.cluster.point_num - 1)
                 )
 
-            # Map the spread to a range between 1 and 2 times between the configured spread limits
-            spread = min(2 * const.KF_SPREAD_LIM[m], spread)
-            spread = max(const.KF_SPREAD_LIM[m], spread)
+                # Map the spread to a range between 1 and 2 times between the configured spread limits
+                spread = min(2 * const.KF_SPREAD_LIM[m], spread)
+                spread = max(const.KF_SPREAD_LIM[m], spread)
 
-            if spread > self.spread_est[m]:
-                # This would most likely be the case when we have few samples
-                self.spread_est[m] = spread
-            else:
-                # Weighed average between calculated spread and the previous spread estimation
-                self.spread_est[m] = (1.0 - const.KF_A_SPR) * self.spread_est[
-                    m
-                ] + const.KF_A_SPR * spread
+                if spread > self.spread_est[m]:
+                    # This would most likely be the case when we have few samples
+                    self.spread_est[m] = spread
+                else:
+                    # Weighed average between calculated spread and the previous spread estimation
+                    self.spread_est[m] = (1.0 - const.KF_A_SPR) * self.spread_est[
+                        m
+                    ] + const.KF_A_SPR * spread
 
     def _get_D(self):
         """
@@ -314,22 +350,21 @@ class ClusterTrack:
         Notes
         -----
         This method performs the following steps:
-        1. Initializes a PointCluster with the given point cloud.
-        2. Adds the point-cluster to the track's frames batch.
-        3. Estimates the number of points in the cluster.
-        4. Estimates the spread of measurements in the cluster.
-        5. Estimates the dispersion matrix of the point groups in the cluster.
-
-        Parameters
-        ----------
-        pointcloud : np.array
-            2D NumPy array representing the point cloud.
+        1. Updates the number of points associated with the track.
+        2. Updates the number of dynamic points associated with the track.
+        3. In case there are point associated with this track, perform the other steps.
+        4. Initializes a PointCluster with the given point cloud.
+        5. Adds the point-cluster to the track's frames batch.
         """
-        self.cluster = PointCluster(pointcloud)
-        self.batch.add_frame(self.cluster.pointcloud)
-        self._estimate_point_num()
-        self._estimate_measurement_spread()
-        self._estimate_group_disp_matrix()
+
+        # Update the number of points and dynamic associated with the track.
+        self.num_points_associated_last = len(pointcloud)
+        self.num_dynamic_points_associated_last = self._get_num_dynamic_points_associated(pointcloud)
+
+        # If there are points associated with this track, update the track.
+        if len(pointcloud):
+            self.cluster = PointCluster(pointcloud)
+            self.batch.add_frame(self.cluster.pointcloud)
 
     def get_Rm(self):
         """
@@ -351,23 +386,61 @@ class ClusterTrack:
         dt : float
             Time multiplier for the prediction.
         """
-        self.state.predict(
-            F=const.MOTION_MODEL.KF_F(dt),
-            Q=const.MOTION_MODEL.KF_Q_DISCR(dt),
-        )
+        if self.track_status is Status.DYNAMIC:
+            self.state.predict(
+                F=const.MOTION_MODEL.KF_F(dt),
+                Q=const.MOTION_MODEL.KF_Q_DISCR(dt),
+            )
         
     def update_state(self):
         """
-        Update the state of the Kalman filter based on the associated measurement (pointcloud centroid).
+        Update the track.
         """
-        z = np.array(self.cluster.centroid)
-        x_prev = self.state.x[:2, 0]
-        self.state.update(z, R=self._get_Rc())
+        # TODO: Calculate my_good_points - dynamic (Doppler more than 0) and unique (association with only one track)
+        vel = self.compute_cartesian_velocity()
+        # print('Velocity -- ', vel)
+        if not self.num_points_associated_last:
+            if self.track_status is Status.DYNAMIC:
+                if vel < const.MIN_VELOCITY_STOP_NO_POINTS:
+                    # If the track is dynamic and no points are associated, force zero velocity.
+                    # self.state.x_prior[3:5] = 0
+                    # If the track is dynamic and no points are associated, transition to STATIC.
+                    self.track_status = Status.STATIC
+                # TODO: Otherwise force constant velocity model (zero acceleration).
+            else:
+                # If the track is static and no points are associated, do not update the state.
+                return
+        elif self.num_dynamic_points_associated_last < const.NUM_DYNAMIC_POINTS_THRESHOLD + 1:
+            if self.track_status is Status.STATIC:
+                # TODO: Update confidence.
+                return
+            else:
+                if vel < const.MIN_VELOCITY_STOP_NO_DYNAMIC_POINTS:
+                    # If the track is dynamic and no dynamic points are associated, force zero velocity.
+                    # self.state.x_prior[3:6] = 0
+                    # If the track is dynamic and no dynamic points are associated, transition to STATIC.
+                    self.track_status = Status.STATIC 
+                    # TODO: If there are many STATIC points, increase confidence.
+                elif vel < const.MIN_VELOCITY_SLOW_DOWN:
+                    # If the track is dynamic and no dynamic points are associated, slow down the velocity.
+                    # self.state.x_prior[3:6] *= 0.5
+                    pass
+                else:
+                    # TODO: Increase confidence. 
+                    return
+        elif self.num_dynamic_points_associated_last > const.NUM_DYNAMIC_POINTS_THRESHOLD:
+            self.track_status = Status.DYNAMIC
+            z = np.array(self.cluster.centroid)
+            self.state.update(z, R=self._get_Rc())
 
-        # If the variance between the predicted and measured position
-        variance = z[:1] - self.state.x[:1, 0]
-        if abs(variance.any()) > 0.6 and self.lifetime == 0:
-            self.state.x[:1, 0] += variance * 0.4
+            self._estimate_point_num()
+            self._estimate_measurement_spread()
+            self._estimate_group_disp_matrix()
+
+            # If the variance between the Kalman State and measured position is above a threshold, update the state.
+            variance = z[:1] - self.state.x[:1, 0]
+            if abs(variance.any()) > 0.6 and self.lifetime == 0:
+                self.state.x[:1, 0] += variance * 0.4
 
     def update_lifetime(self, dt, reset=False):
         """
@@ -476,9 +549,9 @@ class TrackBuffer:
         associated_track_for = np.full(full_set.shape[0], None, dtype=object)
 
         for j, track in enumerate(self.effective_tracks):
-            H_i = np.dot(const.MOTION_MODEL.KF_H, track.state.x).flatten()
+            H_i = np.dot(const.MOTION_MODEL.KF_H, track.state.x_prior).flatten()
             # Group residual covariance matrix
-            C_g_j = track.state.P[:6, :6] + track.get_Rm() + track.group_disp_est
+            C_g_j = track.state.P_prior[:6, :6] + track.get_Rm() + track.group_disp_est
 
             for i, point in enumerate(full_set):
                 # Innovation for each measurement
@@ -524,6 +597,7 @@ class TrackBuffer:
         Predict the state of all effective tracks.
         """
         for track in self.effective_tracks:
+            # TODO: Maybe, accumulate dt for this track in case it is not updated.
             track.predict_state(track.lifetime + self.dt)
 
     def _update_all(self):
@@ -531,6 +605,7 @@ class TrackBuffer:
         Update the state of all effective tracks.
         """
         for track in self.effective_tracks:
+            # TODO: Update only when the track is active (static or dynamic). Delete FREE tracks.
             track.update_state()
 
     def _get_gated_clouds(self, full_set: np.array):
@@ -557,9 +632,10 @@ class TrackBuffer:
                 unassigned = np.append(unassigned, [point], axis=0)
             else:
                 clusters[point_to_closest_track_assignment[i]].append(point)
+
         return unassigned, clusters
 
-    def _assign_points_to_tracks(self, full_set: np.array):
+    def _assign_points_to_tracks_and_get_unassigned(self, full_set: np.array):
         """
         Associate points to existing tracks.
 
@@ -576,17 +652,12 @@ class TrackBuffer:
         unassigned, clouds = self._get_gated_clouds(full_set)
 
         for j, track in enumerate(self.effective_tracks):
-            if len(clouds[j]) == 0:
-                # Nothing is recorder about this track
-                track.update_lifetime(dt=self.dt)
-            else:
-                # Something is recorder about this track
-                track.update_lifetime(dt=self.dt, reset=True)
-                track.associate_pointcloud(np.array(clouds[j]))
+            track.update_lifetime(dt=self.dt, reset=not (len(clouds[j]) == 0))
+            track.associate_pointcloud(np.array(clouds[j]))
 
         return unassigned
 
-    def track(self, pointcloud, batch: BatchedData):
+    def track(self, pointcloud, batch: BatchedData, isBetweenFrame: bool = False):
         """
         Perform the tracking process including prediction, association, maintenance, update, and clustering.
 
@@ -605,11 +676,15 @@ class TrackBuffer:
         self._predict_all()
 
         # Association Step
-        unassigned = self._assign_points_to_tracks(pointcloud)
-        self._maintain_tracks()
+        unassigned = self._assign_points_to_tracks_and_get_unassigned(pointcloud)
 
         # Update Step
         self._update_all()
+
+        # TODO: Move Allocation step before maintenance.
+
+        # Maintenance Step
+        # self._maintain_tracks()
 
         # Clustering of the remainder points Step
         new_clusters = []

@@ -15,7 +15,7 @@ import time
 
 ########### Set the experiment path here ############
 
-EXPERIMENT_PATH = "./dataset/log/mmWave/slow-speed-game-three"
+EXPERIMENT_PATH = "./dataset/log/mmWave/sleep-half-no-game-still-one"
 
 #####################################################
 
