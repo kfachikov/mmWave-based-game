@@ -230,7 +230,7 @@ class ClusterTrack:
         self.num_points_associated_last = cluster.point_num
         self.num_dynamic_points_associated_last = self._get_num_dynamic_points_associated(cluster.pointcloud)
 
-        self.track_status = Status.DYNAMIC if self.num_dynamic_points_associated_last > 3 else Status.STATIC
+        self.track_status = Status.DYNAMIC if self.num_dynamic_points_associated_last > const.NUM_DYNAMIC_POINTS_THRESHOLD else Status.STATIC
 
         self.color = np.random.rand(
             3,
