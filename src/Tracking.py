@@ -401,27 +401,24 @@ class ClusterTrack:
         """
         # TODO: Calculate my_good_points - dynamic (Doppler more than 0) and unique (association with only one track)
         vel = self.compute_cartesian_velocity()
-        print('Velocity -- ', vel)
         if not self.num_points_associated_last:
             if self.track_status is Status.DYNAMIC:
-                print('NO POINTS - DYNAMIC')
                 if vel < const.MIN_VELOCITY_STOP_NO_POINTS:
                     # If the track is dynamic and no points are associated, force zero velocity.
                     # self.state.x_prior[3:5] = 0
                     # If the track is dynamic and no points are associated, transition to STATIC.
                     self.track_status = Status.STATIC
-                # TODO: Otherwise force constant velocity model (zero acceleration).
+                else: 
+                    # TODO: Force constant velocity model (zero acceleration).
+                    self._move_target()
             else:
-                print('NO POINTS - STATIC')
                 # If the track is static and no points are associated, do not update the state.
                 return
         elif self.num_dynamic_points_associated_last < const.NUM_DYNAMIC_POINTS_THRESHOLD + 1:
             if self.track_status is Status.STATIC:
-                print('FEW DYNAMIC POINTS - STATIC')
                 # TODO: Update confidence.
                 return
             else:
-                print('FEW DYNAMIC POINTS - DYNAMIC')
                 if vel < const.MIN_VELOCITY_STOP_NO_DYNAMIC_POINTS:
                     # If the track is dynamic and no dynamic points are associated, force zero velocity.
                     # self.state.x_prior[3:6] = 0
@@ -431,25 +428,31 @@ class ClusterTrack:
                 elif vel < const.MIN_VELOCITY_SLOW_DOWN:
                     # If the track is dynamic and no dynamic points are associated, slow down the velocity.
                     # self.state.x_prior[3:6] *= 0.5
+                    self._move_target()
                     pass
                 else:
-                    # TODO: Increase confidence. 
+                    # TODO: Increase confidence.
+                    self._move_target() 
                     return
         elif self.num_dynamic_points_associated_last > const.NUM_DYNAMIC_POINTS_THRESHOLD:
-            print('MANY DYNAMIC POINTS')
-
             self._estimate_point_num()
             self._estimate_measurement_spread()
             self._estimate_group_disp_matrix()
-            
-            self.track_status = Status.DYNAMIC
-            z = np.array(self.cluster.centroid)
-            self.state.update(z, R=self._get_Rc())
 
-            # If the variance between the Kalman State and measured position is above a threshold, update the state.
-            variance = z[:1] - self.state.x[:1, 0]
-            if abs(variance.any()) > 0.6 and self.lifetime == 0:
-                self.state.x[:1, 0] += variance * 0.4
+            self._move_target()
+
+    def _move_target(self):
+        """
+        Move the target.
+        """
+        self.track_status = Status.DYNAMIC
+        z = np.array(self.cluster.centroid)
+        self.state.update(z, R=self._get_Rc())
+
+        # If the variance between the Kalman State and measured position is above a threshold, update the state.
+        variance = z[:1] - self.state.x[:1, 0]
+        if abs(variance.any()) > 0.6 and self.lifetime == 0:
+            self.state.x[:1, 0] += variance * 0.4
 
     def update_lifetime(self, dt, reset=False):
         """
