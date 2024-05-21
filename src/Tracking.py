@@ -161,8 +161,6 @@ class ClusterTrack:
         KalmanState instance for motion estimation.
     status : int (INACTIVE or ACTIVE)
         Current status of the track.
-    lifetime : int
-        Number of frames the track has been active.
     num_points_associated_last : int
         Number of points associated with the track in the last frame.
     num_dynamic_points_associated_last : int
@@ -207,9 +205,6 @@ class ClusterTrack:
     update_state()
         Update the state of the Kalman filter based on the associated pointcloud.
 
-    update_lifetime(reset=False)
-        Update the track lifetime.
-
     seek_inner_clusters()
         Seek inner clusters within the current track.
 
@@ -225,7 +220,6 @@ class ClusterTrack:
         self.batch = BatchedData()
         self.state = KalmanState(cluster.centroid)
         self.status = ACTIVE
-        self.lifetime = 0
 
         self.num_points_associated_last = cluster.point_num
         self.num_dynamic_points_associated_last = self._get_num_dynamic_points_associated(cluster.pointcloud)
@@ -452,17 +446,8 @@ class ClusterTrack:
 
         # If the variance between the Kalman State and measured position is above a threshold, update the state.
         variance = z[:1] - self.state.x[:1, 0]
-        if abs(variance.any()) > 0.6 and self.lifetime == 0:
+        if abs(variance.any()) > 0.6:
             self.state.x[:1, 0] += variance * 0.4
-
-    def update_lifetime(self, dt, reset=False):
-        """
-        Update the track lifetime.
-        """
-        if reset:
-            self.lifetime = 0
-        else:
-            self.lifetime += dt
 
 class TrackBuffer:
     """
@@ -482,9 +467,6 @@ class TrackBuffer:
 
     Methods
     -------
-    _maintain_tracks()
-        Update the status of tracks based on their lifetime.
-
     update_ef_tracks()
         Update the list of effective tracks (excluding INACTIVE tracks).
 
@@ -525,23 +507,6 @@ class TrackBuffer:
         self.next_track_id = 0
         self.dt = 0
         self.t = time.time()
-
-    def _maintain_tracks(self):
-        """
-        Update the status of tracks based on their mobility and lifetime. Then update the list of effective tracks.
-        """
-        for track in self.effective_tracks:
-            if track.cluster.status == DYNAMIC:
-                lifetime = const.TR_LIFETIME_DYNAMIC
-            else:
-                lifetime = const.TR_LIFETIME_STATIC
-
-            if track.lifetime > lifetime:
-                track.status = INACTIVE
-
-        self.effective_tracks[:] = [
-            track for track in self.effective_tracks if track.status != INACTIVE
-        ]
 
     def _find_closest_track(self, full_set: np.array):
         """
@@ -611,7 +576,7 @@ class TrackBuffer:
         """
         for track in self.effective_tracks:
             # TODO: Maybe, accumulate dt for this track in case it is not updated.
-            track.predict_state(track.lifetime + self.dt)
+            track.predict_state(self.dt)
 
     def _update_all(self):
         """
@@ -665,7 +630,6 @@ class TrackBuffer:
         unassigned, clouds = self._get_gated_clouds(full_set)
 
         for j, track in enumerate(self.effective_tracks):
-            track.update_lifetime(dt=self.dt, reset=not (len(clouds[j]) == 0))
             track.associate_pointcloud(np.array(clouds[j]))
 
         return unassigned
@@ -696,8 +660,7 @@ class TrackBuffer:
 
         # TODO: Move Allocation step before maintenance.
 
-        # Maintenance Step
-        # self._maintain_tracks()
+        # TODO: Maintenance Step
 
         # Clustering of the remainder points Step
         new_clusters = []
