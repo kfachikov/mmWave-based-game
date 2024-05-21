@@ -421,14 +421,14 @@ class ClusterTrack:
                     self.track_status = Status.STATIC 
                     # TODO: If there are many STATIC points, increase confidence.
                 elif vel < const.MIN_VELOCITY_SLOW_DOWN:
-                    # If the track is dynamic and no dynamic points are associated, slow down the velocity.
-                    # self.state.x[3:5] *= 0.5
+                    # If the track is dynamic and no dynamic points are associated, decrease the velocity.
+                    self.state.x[3:5] *= 0.5
+                    velocity = self.state.x[3:6]
                     self._move_target()
-                    pass
+                    self.state.x[3:6] = velocity
                 else:
                     # TODO: Increase confidence.
                     self._move_target() 
-                    return
         elif self.num_dynamic_points_associated_last > const.NUM_DYNAMIC_POINTS_THRESHOLD:
             self._estimate_point_num()
             self._estimate_measurement_spread()
