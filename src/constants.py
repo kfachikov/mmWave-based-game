@@ -85,9 +85,6 @@ DB_MIN_SAMPLES_MAX = 25
 ###### Tracking and Kalman ######
 # Tracks
 TR_MAX_TRACKS = 2
-TR_LIFETIME_DYNAMIC = 3  # sec
-TR_LIFETIME_STATIC = 5
-TR_VEL_THRES = 0.1  # Velocity threshold for STATIC or DYNAMIC track
 TR_GATE = 4.5
 
 TR_X_THRESH = 10
@@ -97,7 +94,7 @@ TR_Z_THRESH = 2.5
 # Update Constants
 MIN_VELOCITY_STOP_NO_POINTS = 0.5
 MIN_VELOCITY_STOP_NO_DYNAMIC_POINTS = 0.5
-MIN_VELOCITY_SLOW_DOWN = 0.2
+MIN_VELOCITY_SLOW_DOWN = 1
 
 # Dynamic Points Doppler Threshold
 DOPPLER_THRESHOLD = 0

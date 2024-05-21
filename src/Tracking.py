@@ -129,13 +129,6 @@ class PointCluster:
         self.min_vals = np.min(pointcloud[:, :6], axis=0)
         self.max_vals = np.max(pointcloud[:, :6], axis=0)
 
-        # Check whether the cluster centroid is moving quickly enough or not.
-        if math.sqrt(np.sum((self.centroid[3:6] ** 2))) < const.TR_VEL_THRES:
-            self.status = STATIC
-        else:
-            self.status = DYNAMIC
-
-
 class ClusterTrack:
     """
     A class representing a tracked cluster with a Kalman filter for motion estimation.
