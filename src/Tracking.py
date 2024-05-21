@@ -405,12 +405,13 @@ class ClusterTrack:
             if self.track_status is Status.DYNAMIC:
                 if vel < const.MIN_VELOCITY_STOP_NO_POINTS:
                     # If the track is dynamic and no points are associated, force zero velocity.
-                    # self.state.x_prior[3:5] = 0
+                    self.state.x[3:6] = 0
                     # If the track is dynamic and no points are associated, transition to STATIC.
                     self.track_status = Status.STATIC
                 else: 
-                    # TODO: Force constant velocity model (zero acceleration).
+                    velocity = self.state.x[3:6]
                     self._move_target()
+                    self.state.x[3:6] = velocity
             else:
                 # If the track is static and no points are associated, do not update the state.
                 return
@@ -421,13 +422,13 @@ class ClusterTrack:
             else:
                 if vel < const.MIN_VELOCITY_STOP_NO_DYNAMIC_POINTS:
                     # If the track is dynamic and no dynamic points are associated, force zero velocity.
-                    # self.state.x_prior[3:6] = 0
+                    self.state.x[3:6] = 0
                     # If the track is dynamic and no dynamic points are associated, transition to STATIC.
                     self.track_status = Status.STATIC 
                     # TODO: If there are many STATIC points, increase confidence.
                 elif vel < const.MIN_VELOCITY_SLOW_DOWN:
                     # If the track is dynamic and no dynamic points are associated, slow down the velocity.
-                    # self.state.x_prior[3:6] *= 0.5
+                    # self.state.x[3:5] *= 0.5
                     self._move_target()
                     pass
                 else:
