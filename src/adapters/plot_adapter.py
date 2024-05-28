@@ -23,6 +23,7 @@ class PlotAdapter(Adapter):
 
     def __init__(self, raw_cloud=True, b_boxes=True):
         self.dynamic_art = []
+        self.arrows = []
         fig = plt.figure()
         plots_num = sum([raw_cloud, b_boxes])
         plots_index = 1
@@ -69,6 +70,11 @@ class PlotAdapter(Adapter):
         for collection in self.dynamic_art:
             collection.remove()
         self.dynamic_art = []
+
+        # Remove arrows
+        for arrow in self.arrows:
+            arrow.remove()
+        self.arrows = []
 
         # Remove screen fading
         for patch in self.ax_bb.patches:
@@ -145,6 +151,19 @@ class PlotAdapter(Adapter):
             self.dynamic_art.append(
                 self._draw_bounding_box(track.state.x, color=track.color, fill=0.2)
             )
+
+            # Draw an arrow in the velocity direction
+            # Calculated using the track.state.x[3:6] values
+            self.arrows.append(self.ax_bb.quiver(
+                track.state.x[0],
+                track.state.x[1],
+                track.state.x[2],
+                track.state.x[3],
+                track.state.x[4],
+                track.state.x[5],
+                color=track.color,
+            ))
+
 
         # Update 3d plot
         self.bb_scatter = self.ax_bb.scatter(
