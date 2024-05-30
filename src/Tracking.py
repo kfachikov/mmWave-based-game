@@ -212,7 +212,6 @@ class ClusterTrack:
         self.cluster = cluster
         self.batch = BatchedData()
         self.state = KalmanState(cluster.centroid)
-        self.status = ACTIVE
 
         self.num_points_associated_last = cluster.point_num
         self.num_dynamic_points_associated_last = self._get_num_dynamic_points_associated(cluster.pointcloud)
@@ -437,10 +436,8 @@ class ClusterTrack:
         z = np.array(self.cluster.centroid)
         self.state.update(z, R=self._get_Rc())
 
-        # If the variance between the Kalman State and measured position is above a threshold, update the state.
         variance = z[:1] - self.state.x[:1, 0]
-        if abs(variance.any()) > 0.6:
-            self.state.x[:1, 0] += variance * 0.4
+        self.state.x[:1, 0] += variance * 0.4
 
 class TrackBuffer:
     """
