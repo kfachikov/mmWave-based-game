@@ -104,10 +104,14 @@ class Ball():
         return self.game_over
 
     def draw(self):
-        pygame.draw.circle(self.screen, const.PADDLE_COLOR_FILL, (self.rect.x + self.ball_rad, self.rect.y + self.ball_rad),
-                           self.ball_rad)
-        pygame.draw.circle(self.screen, const.PADDLE_COLOR_OUTLINE, (self.rect.x + self.ball_rad, self.rect.y + self.ball_rad),
-                           self.ball_rad, 3)
+        self.draw_circle_alpha(self.screen, const.PADDLE_COLOR_FILL, (self.rect.x + self.ball_rad, self.rect.y + self.ball_rad),
+                               self.ball_rad)
+        
+    def draw_circle_alpha(self, surface, color, center, radius):
+        target_rect = pygame.Rect(center, (0, 0)).inflate((radius * 2, radius * 2))
+        shape_surf = pygame.Surface(target_rect.size, pygame.SRCALPHA)
+        pygame.draw.circle(shape_surf, color, (radius, radius), radius)
+        surface.blit(shape_surf, target_rect)
 
     def reset(self, x, y):
         self.x = x - self.ball_rad
