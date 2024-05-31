@@ -28,8 +28,8 @@ class Wall():
     """
     def __init__(self, screen):
         self.screen = screen
-        self.width = const.SCREEN_WIDTH // const.COL_NUM # fill the entire screen horizontally
-        self.height = 0.5 * const.SCREEN_HEIGHT // const.ROW_NUM # fill only half of the screen vertically
+        self.width = (const.SCREEN_WIDTH - 3) // const.COL_NUM # fill the entire screen horizontally
+        self.height = -3 + 0.5 * const.SCREEN_HEIGHT // const.ROW_NUM # fill only half of the screen vertically
 
     def initialise_wall(self):
         self.blocks = []
@@ -37,17 +37,11 @@ class Wall():
             block_row = []
             for col in range(const.COL_NUM):
                 # generate x and y positions for each block and create a rectangle from that
-                block_x = col * self.width
-                block_y = row * self.height
+                block_x = 3 + col * self.width
+                block_y = 3 + row * self.height
                 rect = pygame.Rect(block_x, block_y, self.width, self.height)
 
-                # assign a strength value to each block based on its row
-                if row < 2:
-                    strength = 3
-                elif row < 4:
-                    strength = 2
-                elif row < 6:
-                    strength = 1
+                strength = 1
 
                 block_individual = [rect, strength]
 
@@ -57,12 +51,6 @@ class Wall():
     def update_wall(self):
         for row in self.blocks:
             for block in row:
-                # assign a color based on block strength
-                if block[1] == 3:
-                    block_col = const.COLOR_BLOCK_BLUE
-                elif block[1] == 2:
-                    block_col = const.COLOR_BLOCK_GREEN
-                elif block[1] == 1:
-                    block_col = const.COLOR_BLOCK_RED
+                block_col = const.COLOR_BLOCK_DELFT_BLUE
                 pygame.draw.rect(self.screen, block_col, block[0])
-                pygame.draw.rect(self.screen, const.COLOR_BACKGROUND, (block[0]), 2)
+                pygame.draw.rect(self.screen, (255,255,255), (block[0]), 3)
