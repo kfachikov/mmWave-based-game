@@ -37,7 +37,7 @@ class Ball():
     reset(x, y)
         Resets the ball to its initial position.
     """
-    def __init__(self, screen, x, y, speed_max = 5):
+    def __init__(self, screen, x, y, speed_max = const.SCREEN_WIDTH / 240):
         self.screen = screen
         self.ball_rad = int(0.5 * const.SCREEN_HEIGHT / const.ROW_NUM * const.BALL_SIZE_COEF)
         self.speed_max = speed_max
@@ -48,7 +48,7 @@ class Ball():
 
         # collision threshold
         collision_thresh_x = self.speed_max
-        collision_thresh_y = abs(self.speed_y)
+        collision_thresh_y = abs(self.speed_y) + 1
 
         wall_destroyed = 1
         
