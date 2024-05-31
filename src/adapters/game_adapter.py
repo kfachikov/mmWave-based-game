@@ -6,11 +6,21 @@ from adapters.adapter import Adapter
 import constants as const
 import games.breakout.constants as game_const 
 
+import os
+
 class GameAdapter(Adapter):
     def __init__(self) -> None:
+        # x = 0
+        # y = -2160
+        # os.environ['SDL_VIDEO_WINDOW_POS'] = f"{x},{y}"
+
         self.current_player_pos = 0
         self.breakout = Breakout()
         self.breakout.start()
+
+        if (const.REPORTING_OFFLINE):
+            self.player_position = []
+            self.paddle_positions = []
 
     def update(self, trackbuffer: TrackBuffer, **kwargs):
         if trackbuffer.effective_tracks:
@@ -26,6 +36,12 @@ class GameAdapter(Adapter):
                 self.breakout.move(displacement_pixels)
                 
                 self.current_player_pos = new_player_pos
+
+                if (const.REPORTING_OFFLINE):
+                    # Condition on the frame num. Necessary due to starting and closing the application.
+                    if (kwargs['frame_number'] > 100 and kwargs['frame_number'] < 450):
+                        self.player_position.append(self.current_player_pos[0])
+                        self.paddle_positions.append(self.breakout.player_paddle.rect.x)
             else:
                 self.breakout.move(0)
         else: 

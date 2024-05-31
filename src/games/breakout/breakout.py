@@ -11,7 +11,7 @@ class Breakout:
     def __init__(self):
         pygame.init()
 
-        self.screen = pygame.display.set_mode((const.SCREEN_WIDTH, const.SCREEN_HEIGHT))
+        self.screen = pygame.display.set_mode((const.SCREEN_WIDTH, const.SCREEN_HEIGHT), flags = pygame.NOFRAME)
         pygame.display.set_caption('Breakout')
 
         self.font = pygame.font.SysFont('Constantia', 30)
