@@ -4,6 +4,11 @@ from scipy.linalg import block_diag
 
 PIXEL_TO_METERS = 0.000265
 
+SLEEPTIME = 0.1  # from radar config "frameCfg"
+GAME_REFRESH_RATE = 20
+
+REFRESH_RATE_COEF = SLEEPTIME / (1 / GAME_REFRESH_RATE)
+
 ##### General Flags #####
 PROFILING = False
 SCREEN_CONNECTED = False

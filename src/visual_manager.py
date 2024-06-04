@@ -13,5 +13,5 @@ class VisualManager:
         else:
             self.visual = PlotAdapter()
 
-    def update(self, trackbuffer, detObj=None):
-        self.visual.update(trackbuffer, detObj=detObj)
+    def update(self, trackbuffer, frame_number=0, detObj=None):
+        self.visual.update(trackbuffer, detObj=detObj, frame_number=frame_number)
