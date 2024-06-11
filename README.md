@@ -1,4 +1,4 @@
-# Real-time mmWave Multi-Person Pose Estimation System for Privacy-Aware Windows
+# Real-time mmWave-based interactive video game
 
 The system is specifically designed to receive radar data from the **IWR1443** millimeter-wave sensor by Texas Instruments (using [IWR1443-Python-API](https://github.com/FmmW-Group/IWR1443-Python-API)).
 
