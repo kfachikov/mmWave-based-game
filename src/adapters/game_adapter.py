@@ -12,9 +12,9 @@ import os
 
 class GameAdapter(Adapter):
     def __init__(self) -> None:
-        # x = 0
-        # y = -2160
-        # os.environ['SDL_VIDEO_WINDOW_POS'] = f"{x},{y}"
+        x = 0
+        y = -2160
+        os.environ['SDL_VIDEO_WINDOW_POS'] = f"{x},{y}"
 
         self.current_player_pos = 0
         self.breakout = Breakout()

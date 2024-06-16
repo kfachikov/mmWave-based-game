@@ -40,7 +40,7 @@ class Ball():
     def __init__(self, screen, x, y, speed_max = const.SCREEN_WIDTH / 240):
         self.screen = screen
         self.ball_rad = int(0.5 * const.SCREEN_HEIGHT / const.ROW_NUM * const.BALL_SIZE_COEF)
-        self.speed_max = speed_max
+        self.speed_max = speed_max * 2
 
         self.reset(x, y)
 
