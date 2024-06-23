@@ -25,7 +25,7 @@ This is the repository for my BSc thesis:
    ```
 
 3. Adjust the system and scene configurations in `./src/constants.py`. \
-Change `P_CLI_PORT` and `P_DATA_PORT` according to your system - use `COM*` on Windows or `/dev/ttyACM0` on Linux.
+Change `P_CLI_PORT` and `P_DATA_PORT` according to your system - use `COM*` on Windows or `/dev/ttyACM*` on Linux.
 
 4. (Optional) For creating\logging an experiment for offline experimentation, run the logging module.
     ```sh
