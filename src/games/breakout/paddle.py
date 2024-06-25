@@ -26,10 +26,14 @@ class Paddle():
 
     Methods
     -------
-    move()
+    move(displacement)
         Moves the paddle based on the player's input.
+    set_x(x)
+        Sets the x-coordinate of the paddle.
     draw()
         Draws the paddle on the screen.
+    draw_rect_alpha()
+        Draws a rectangle with a transparent fill color.
     reset()
         Resets the paddle to its initial position. Centered at the bottom of the screen.
     """
@@ -62,9 +66,16 @@ class Paddle():
         self.rect.x += displacement
         self.direction = -1 if displacement < 0 else 1
 
+    def set_x(self, x):
+        self.rect.x = x
+
     def draw(self):
-        pygame.draw.rect(self.screen, const.PADDLE_COLOR_FILL, self.rect)
-        pygame.draw.rect(self.screen, const.PADDLE_COLOR_OUTLINE, self.rect, 3)
+        self.draw_rect_alpha(self.screen, const.PADDLE_COLOR_FILL, self.rect)
+
+    def draw_rect_alpha(self, surface, color, rect, width=0):
+        shape_surf = pygame.Surface(pygame.Rect(rect).size, pygame.SRCALPHA)
+        pygame.draw.rect(shape_surf, color, shape_surf.get_rect(), width)
+        surface.blit(shape_surf, rect)
 
     def reset(self):
         self.x = int((const.SCREEN_WIDTH / 2) - (self.width / 2))

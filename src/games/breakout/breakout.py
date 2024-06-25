@@ -36,6 +36,8 @@ class Breakout:
 
         self.screen.fill(const.COLOR_BACKGROUND)
 
+        pygame.draw.rect(self.screen, (0, 0, 0), (0, 0, const.SCREEN_WIDTH, const.SCREEN_HEIGHT), 3)
+
         self.wall.update_wall()
         self.player_paddle.draw()
         self.ball.draw()
