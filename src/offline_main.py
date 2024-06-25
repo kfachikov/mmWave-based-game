@@ -1,11 +1,11 @@
 import sys
 import os
 from PyQt5.QtWidgets import QApplication
+import pygame
 from wakepy import keep
 import constants as const
 from visual_manager import VisualManager
 from Utils import OfflineManager, normalize_data
-from keras.models import load_model
 from Tracking import (
     TrackBuffer,
     BatchedData,
@@ -15,7 +15,7 @@ import time
 
 ########### Set the experiment path here ############
 
-EXPERIMENT_PATH = "./dataset/log/mmWave/sleep-half-no-game-still-one"
+EXPERIMENT_PATH = "./dataset/log/mmWave/moving-wide-0.8-1.8"
 
 #####################################################
 
@@ -26,7 +26,6 @@ def offline_main():
         raise ValueError(f"No experiment file found in the path: {experiment_path}")
 
     sensor_data = OfflineManager(experiment_path)
-    SLEEPTIME = 0.1  # from radar config "frameCfg"
 
     app = QApplication(sys.argv)
 
@@ -45,7 +44,7 @@ def offline_main():
                 dataOk, _, detObj = sensor_data.get_data()
                 if dataOk:
                     if first_iter:
-                        trackbuffer.dt = SLEEPTIME
+                        trackbuffer.dt = const.SLEEPTIME
                         first_iter = False
                     else:
                         trackbuffer.dt = detObj["posix"][0] / 1000 - trackbuffer.t
@@ -58,15 +57,17 @@ def offline_main():
                         # Tracking module
                         trackbuffer.track(effective_data, batch)
 
-                    visual.update(trackbuffer, detObj)
+                    visual.update(trackbuffer, sensor_data.frame_count, detObj)
                 else:
-                    visual.update(trackbuffer)
+                    visual.update(trackbuffer, sensor_data.frame_count)
 
             except KeyboardInterrupt:
                 break
             finally:
                 t_code = time.time() - t0
-                t_sleep = max(0, SLEEPTIME / 2 - t_code)
+                t_sleep = max(0, const.SLEEPTIME / const.REFRESH_RATE_COEF - t_code)
                 time.sleep(t_sleep)
+
+    pygame.quit()
 
 offline_main()
