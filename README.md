@@ -7,7 +7,7 @@ The **breakout** game is inspired by and built upon [this implementation](https:
 ## About
 
 This is the repository for my BSc thesis: 
-[*Tracking People for mmWave-based Interactive Game*]() (not linked yet)
+[*Tracking People for mmWave-based Interactive Game*](http://resolver.tudelft.nl/uuid:cd643124-30d3-45bc-8e3f-020cfc3dd64c)
 
 ## Getting Started
 
